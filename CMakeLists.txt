@@ -92,7 +92,7 @@ if(MSVC)
 endif()
 
 # set the startup project for the "play" button in MSVC
-set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT intro)
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT sudokuGenerator)
 
 if(CMAKE_SKIP_INSTALL_RULES)
   return()
@@ -104,7 +104,7 @@ include(cmake/PackageProject.cmake)
 # we know we want to ship
 SudokuSearch_package_project(
   TARGETS
-  intro
+  sudokuGenerator
   SudokuSearch_options
   SudokuSearch_warnings
   # FIXME: this does not work! CK
