@@ -46,7 +46,6 @@ public:
       const std::scoped_lock lock{ mux };
       return rndDev();
     }());
-    Sudoku sudoku;
     auto modifyDigit = [&](auto irow, auto jcol, auto chr, auto incdec) {
       auto cIdx = static_cast<std::size_t>(chr - '1');
       for (auto offset : std::views::iota(0UL, N)) {
@@ -68,9 +67,10 @@ public:
         if (val <= 0) { chr = '\x0'; }
       }
       std::shuffle(choices.begin(), choices.end(), gen);
+      // NOLINTNEXTLINE(readability-use-anyofallof)
       for (auto chr : choices) {
         if (chr < '1' || chr > '9') { continue; }
-        sudoku.m[irow][jcol] = chr;
+        m[irow][jcol] = chr;
         modifyDigit(irow, jcol, chr, -1);
         if (getRandomSudokuRec((irow + 1) % N, jcol + ((irow + 1) / N), getRandomSudokuRec)) { return true; }
         modifyDigit(irow, jcol, chr, +1);
@@ -168,7 +168,7 @@ void normalize(Sudoku &sudoku)
 {
   auto normal = sudoku;
   for (auto [foo1, foo2, foo3, bar1, bar2, bar3, baz1, baz2] :
-    std::views::cartesian_product(funcs<0>, funcs<1>, funcs<1>, funcs<0>, funcs<1>, funcs<2>, blockFuncs, blockFuncs)) {
+    std::views::cartesian_product(funcs<0>, funcs<1>, funcs<2>, funcs<0>, funcs<1>, funcs<2>, blockFuncs, blockFuncs)) {
     for (const bool doTrans : { false, true }) {
       auto testSudoku = sudoku;
       foo1(testSudoku);
@@ -196,9 +196,8 @@ void generateSudokus(std::size_t nthreads, std::uint32_t nsudokus, bool bSkipNor
     return std::jthread{ [&]() {
       while (true) {
         auto curCount = count.load();
-        while (count.compare_exchange_strong(curCount, curCount - 1)) {
-          if (curCount <= 0) { return; }
-        }
+        while (curCount > 0 && !count.compare_exchange_strong(curCount, curCount - 1)) {}
+        if (curCount <= 0) { return; }
         Sudoku sudoku;
         if (!bSkipNormalize) { normalize(sudoku); }
         std::println("{}", static_cast<std::string_view>(sudoku));
