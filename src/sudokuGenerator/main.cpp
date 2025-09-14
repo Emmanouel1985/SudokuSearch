@@ -11,6 +11,7 @@
 #include <random>
 #include <ranges>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -27,16 +28,11 @@
 
 constexpr auto N = 9UL;// NOLINT
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
-struct Sudoku
+class Sudoku
 {
-  std::array<std::array<char, N>, N> m;
-  char _ = '\x0';
-  auto operator<=>(const Sudoku &other) const = default;
-  bool operator==(const Sudoku &other) const = default;
-
-  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-  static Sudoku getRandomSudoku()
+public:
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity,cppcoreguidelines-pro-type-member-init,hicpp-member-init)
+  Sudoku()
   {
     // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     using namespace std::literals;
@@ -82,11 +78,27 @@ struct Sudoku
       return false;
     };
     getRandomSudoku(0UL, 0UL, getRandomSudoku);
-    return sudoku;
     // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
   }
+
+  auto operator<=>(const Sudoku &other) const = default;
+  bool operator==(const Sudoku &other) const = default;
+
+  explicit operator std::string_view() const { return std::string_view{ m[0].data(), N * N }; }
+
+
+  template<std::size_t I1, std::size_t I2> friend void swapRows(Sudoku &sudoku);
+  template<std::size_t I1, std::size_t I2> friend void swapRows(Sudoku &sudoku);
+  template<std::size_t I1, std::size_t I2> friend void swapRowBlocks(Sudoku &sudoku);
+  friend void transpose(Sudoku &sudoku);
+  friend void relabel(Sudoku &sudoku, const std::array<char, N> &labels);
+  friend void minLabeling(Sudoku &sudoku);
+
+private:
+  std::array<std::array<char, N>, N> m;
 };
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
 template<std::size_t I1, std::size_t I2> void swapRows(Sudoku &sudoku) { std::swap(sudoku.m[I1], sudoku.m[I2]); }
 
 template<std::size_t I1, std::size_t I2> void swapRowBlocks(Sudoku &sudoku)
@@ -110,6 +122,7 @@ void relabel(Sudoku &sudoku, const std::array<char, N> &labels)
     std::ranges::for_each(row, [&](char &chr) { chr = labels[static_cast<std::size_t>(chr - '1')]; });
   }
 }
+
 void minLabeling(Sudoku &sudoku)
 {
   std::array<char, N> newLabels;// NOLINT
@@ -186,9 +199,9 @@ void generateSudokus(std::size_t nthreads, std::uint32_t nsudokus, bool bSkipNor
         while (count.compare_exchange_strong(curCount, curCount - 1)) {
           if (curCount <= 0) { return; }
         }
-        auto sudoku = Sudoku::getRandomSudoku();
+        Sudoku sudoku;
         if (!bSkipNormalize) { normalize(sudoku); }
-        std::println("{} {}", sudoku.m[0].data(), curCount);
+        std::println("{}", static_cast<std::string_view>(sudoku));
       }
     } };
   });
